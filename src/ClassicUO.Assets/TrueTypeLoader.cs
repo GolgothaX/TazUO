@@ -33,6 +33,7 @@
 using System;
 using System.Collections.Frozen;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -121,6 +122,7 @@ public class TrueTypeLoader
     private void LoadSystemFonts()
     {
         int totalLoaded = 0;
+        var stopwatch = Stopwatch.StartNew();
         try
         {
             foreach (FontsByFamily fontFamily in SystemFontProvider.GetSystemFonts())
@@ -131,7 +133,8 @@ public class TrueTypeLoader
             Log.Error($"Failed to load system fonts - {e.Message}");
         }
 
-        Log.Debug($"Loaded a total of {totalLoaded} system fonts");
+        stopwatch.Stop();
+        Log.Debug($"Loaded a total of {totalLoaded} system fonts in {stopwatch.ElapsedMilliseconds}ms");
     }
 
     private int LoadFontFamily(FontsByFamily family)
@@ -215,6 +218,11 @@ public class TrueTypeLoader
         if (_fonts.TryGetValue(name, out FontSystem font))
             return font.GetFont(size);
 
+        // Use the default embedded font as a fallback
+        if (_fonts.TryGetValue(EmbeddedFontNames.ROBOTO, out FontSystem embeddedFont))
+            return embeddedFont.GetFont(size);
+
+        // Otherwise, use the first font we have or give up with a null.
         return _fonts.Count > 0 ? _fonts.First().Value.GetFont(size) : null;
     }
 

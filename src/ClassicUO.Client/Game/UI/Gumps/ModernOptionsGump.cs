@@ -4746,7 +4746,10 @@ namespace ClassicUO.Game.UI.Gumps
             Action<int, string> onSelect = null
             )
         {
-            int selectedFontInd = Array.IndexOf(fontNames, selectedFont);
+            // Make sure the index is never out-of-bounds;
+            // This can technically happen if a profile is moved to a machine that lacks the currently selected font.
+            // Ideally, we'd want some 'warning' marker in the UI, but that's for a later time.
+            int selectedFontInd = Math.Clamp(Array.IndexOf(fontNames, selectedFont), 0, fontNames.Length - 1);
 
             // Guesstimate the combo's width based on the longest font name, otherwise we get bad wrapping/truncations.
             // Definitely not a "pretty" solution but works well enough until we overhaul the settings pages.

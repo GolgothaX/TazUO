@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -58,24 +57,44 @@ public static class SystemFontProvider
             return null;
         }
 
-        ConcurrentBag<byte[]> fontData = [];
-        Task ioTasks = Parallel.ForEachAsync(familyPaths, async (path, cToken) =>
-        {
-            try
-            {
-                fontData.Add(await File.ReadAllBytesAsync(path, cToken));
-            }
-            catch (Exception e)
-            {
-                Log.Error($"Failed to read font file '{path}' - {e.Message}");
-            }
-        });
+        // FontStash silently relies on insertion order when looking up glyphs.
+        // To ensure consistent behavior, insertion order must be deterministic.
+        string[] orderedPaths = familyPaths
+            .OrderBy(path => path, StringComparer.Ordinal)
+            .ToArray();
+
+        if (orderedPaths.Length == 0)
+            return null;
+
+        Task<(int Index, byte[] Data)>[] ioTasks = orderedPaths
+            .Select(ReadFont)
+            .ToArray();
 
         Task.WaitAll(ioTasks);
 
-        if (fontData.IsEmpty)
+        byte[][] fontFaces = ioTasks
+            .Select(task => task.Result)
+            .Where(result => result.Data != null)
+            .OrderBy(result => result.Index)
+            .Select(result => result.Data!)
+            .ToArray();
+
+        if (fontFaces.Length == 0)
             return null;
 
-        return new FontsByFamily(family.Name, fontData.ToArray());
+        return new FontsByFamily(family.Name, fontFaces);
+    }
+
+    private static async Task<(int Index, byte[] Data)> ReadFont(string path, int index)
+    {
+        try
+        {
+            return (index, await File.ReadAllBytesAsync(path));
+        }
+        catch (Exception e)
+        {
+            Log.Error($"Failed to read font file '{Path.GetFileName(path)}' - {e.Message}");
+            return (index, null);
+        }
     }
 }
