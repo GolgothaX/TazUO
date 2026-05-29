@@ -4485,7 +4485,6 @@ namespace ClassicUO.Game.UI.Gumps
             {
                 if (e.Button == MouseButtonType.Left)
                 {
-                    SetProfileAsDefault(CurrentProfile);
                     World.Macros.Save(Path.Combine(RootPath, "macros.xml"));
                     GameActions.Print(World, lang.GetTazUO.SetMacrosAsDefaultSuccess, Constants.HUE_SUCCESS, Data.MessageType.System);
                 }
