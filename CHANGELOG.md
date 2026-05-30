@@ -2,7 +2,6 @@
 All notable changes to TazUO will be recorded here.
 
 ---
-## In Development ( `dev` branch )
 
 
 ## V5.2.0
